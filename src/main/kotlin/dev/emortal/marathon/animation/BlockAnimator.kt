@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 abstract class BlockAnimator(val game: Game) {
     val taskGroup = TaskGroup()
-    val blocksAndTasks = mutableSetOf<Pair<Point, MinestomRunnable>>()
+    val blocksAndTasks = mutableListOf<Pair<Point, MinestomRunnable>>()
     companion object {
         val indexTag = Tag.Integer("blockIndex")
     }
@@ -26,14 +26,15 @@ abstract class BlockAnimator(val game: Game) {
     abstract fun setBlockAnimated(point: Point, block: Block, lastPoint: Point)
 
     // would've been nice to just override cancel() but whatever
-    open fun flushBreakAnimations() {
+    open fun flushBreakAnimations(): List<Point> {
         for ((i, blockAndTask) in blocksAndTasks.withIndex()) {
             blockAndTask.second.cancel()
             // have to reset breaking state to prevent "ghost breakage"
             game.instance.get()?.sendBlockDamage(blockAndTask.first, -1, i)
-            game.instance.get()?.setBlock(blockAndTask.first, Block.AIR)
         }
+        val blocks = blocksAndTasks.map { it.first }
         blocksAndTasks.clear()
+        return blocks
     }
 
     open fun destroyBlockAnimated(block: Point, feedback: Boolean = false) {

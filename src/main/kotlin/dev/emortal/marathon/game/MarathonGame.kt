@@ -3,6 +3,7 @@ package dev.emortal.marathon.game
 import dev.emortal.immortal.config.GameOptions
 import dev.emortal.immortal.game.Game
 import dev.emortal.immortal.game.GameManager
+import dev.emortal.immortal.util.apply
 import dev.emortal.immortal.util.armify
 import dev.emortal.marathon.MarathonExtension
 import dev.emortal.marathon.animation.BlockAnimator
@@ -377,7 +378,7 @@ class MarathonGame(gameOptions: GameOptions) : Game(gameOptions) {
         val player = players.first()
 
         breakingTask?.cancel()
-        animation.flushBreakAnimations()
+        val unbrokenBlocks = animation.flushBreakAnimations()
         breakingTask = null
 
         if (score == 0) {
@@ -400,9 +401,16 @@ class MarathonGame(gameOptions: GameOptions) : Game(gameOptions) {
 
         val batch = AbsoluteBlockBatch()
         blocks.forEach { block ->
-            if (block.second == Block.GRASS_BLOCK) return@forEach
-            instance.setBlock(block.first, Block.AIR)
+            if (block.second == Block.ORANGE_CONCRETE) return@forEach
+            batch.setBlock(block.first, Block.AIR)
         }
+
+        unbrokenBlocks.forEach {
+            if (it.sameBlock(spawnPosition.sub(0.0, 1.0, 0.0))) return@forEach
+            batch.setBlock(it, Block.AIR)
+        }
+
+        batch.apply(instance)
 
         blocks.clear()
         instance.setBlock(spawnPosition.sub(0.0, 1.0, 0.0), Block.ORANGE_CONCRETE)
