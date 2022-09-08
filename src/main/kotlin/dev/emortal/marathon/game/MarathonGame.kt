@@ -16,7 +16,6 @@ import dev.emortal.marathon.generator.Generator
 import dev.emortal.marathon.generator.LegacyGenerator
 import dev.emortal.marathon.gui.MusicPlayerInventory
 import dev.emortal.marathon.utils.TimeFrame
-import dev.emortal.marathon.utils.firsts
 import dev.emortal.marathon.utils.updateOrCreateLine
 import kotlinx.coroutines.runBlocking
 import net.kyori.adventure.sound.Sound
@@ -55,10 +54,8 @@ import org.tinylog.kotlin.Logger
 import world.cepi.kstom.Manager
 import world.cepi.kstom.adventure.noItalic
 import world.cepi.kstom.event.listenOnly
-import world.cepi.kstom.util.asPos
 import world.cepi.kstom.util.asVec
 import world.cepi.kstom.util.chunksInRange
-import world.cepi.kstom.util.roundToBlock
 import world.cepi.particle.Particle
 import world.cepi.particle.ParticleType
 import world.cepi.particle.data.OffsetAndSpeed
@@ -325,17 +322,26 @@ class MarathonGame(gameOptions: GameOptions) : Game(gameOptions) {
 
             if (!player.hasTag(teleportingTag)) checkPosition(player, newPosition)
 
-            val posUnderPlayer = newPosition.sub(0.0, 1.0, 0.0).roundToBlock().asPos()
-            val pos2UnderPlayer = newPosition.sub(0.0, 2.0, 0.0).roundToBlock().asPos()
 
-            val blockPositions = blocks.firsts()
+            val isOnTop = (
+                    this.player.position.z > blocks[1].first.blockZ() - 1 &&
+                    this.player.position.y >= blocks[1].first.blockY() + 1 &&
+                    this.player.position.y <= blocks[1].first.blockY() + 1.5
+            )
 
-            var index = blockPositions.indexOf(pos2UnderPlayer)
+            // 1.3 = the end of the block + the end of the player hitbox when shifting off the edge
+            val isOnBackEdge = (
+                    (this.player.isOnGround && this.player.position.z > blocks[1].first.blockZ() - 1.3)
+            )
 
-            if (index == -1) index = blockPositions.indexOf(posUnderPlayer)
-            if (index == -1 || index == 0) return@listenOnly
+            val isJumpingAround = (
+                    this.player.position.z > blocks[1].first.blockZ() + 1.3 &&
+                    (this.player.position.x < blocks[1].first.blockX() || this.player.position.x > blocks[1].first.blockY() + 1)
+            )
 
-            generateNextBlock(index, true)
+            if (isOnTop || isOnBackEdge || isJumpingAround) {
+                generateNextBlock(1, true)
+            }
         }
 
         listenOnly<PlayerChangeHeldSlotEvent> {
